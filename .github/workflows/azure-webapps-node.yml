@@ -1,0 +1,105 @@
+# This workflow will build and push a node.js application to an Azure Web App when a commit is pushed to your default branch.
+#
+# This workflow assumes you have already created the target Azure App Service web app.
+# For instructions see https://docs.microsoft.com/en-us/azure/app-service/quickstart-nodejs?tabs=linux&pivots=development-environment-cli
+#
+# To configure this workflow:
+#
+# 1. Download the Publish Profile for your Azure Web App. You can download this file from the Overview page of your Web App in the Azure Portal.
+#    For more information: https://docs.microsoft.com/en-us/azure/app-service/deploy-github-actions?tabs=applevel#generate-deployment-credentials
+#
+# 2. Create a secret in your repository named AZURE_WEBAPP_PUBLISH_PROFILE, paste the publish profile contents as the value of the secret.
+#    For instructions on obtaining the publish profile see: https://docs.microsoft.com/azure/app-service/deploy-github-actions#configure-the-github-secret
+#
+# 3. Change the value for the AZURE_WEBAPP_NAME. Optionally, change the AZURE_WEBAPP_PACKAGE_PATH and NODE_VERSION environment variables below.
+#
+# For more information on GitHub Actions for Azure: https://github.com/Azure/Actions
+# For more information on the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# For more samples to get started with GitHub Action workflows to deploy to Azure: https://github.com/Azure/actions-workflow-samples
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: your-app-name    # set this to your application's name
+  AZURE_WEBAPP_PACKAGE_PATH: '.'      # set this to the path to your web app project, defaults to the repository root
+  NODE_VERSION: '20.x'                # set this to the node version to use
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: npm install, build, and test
+      run: |
+        npm install
+        npm run build --if-present
+        npm run test --if-present
+
+    - name: Upload artifact for deployment job
+      uses: actions/upload-artifact@v3
+      with:
+        name: node-app
+        path: .
+
+  deploy:
+    permissions:
+      contents: none
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'Development'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    steps:
+    - name: Download artifact from build job
+      uses: actions/download-artifact@v3
+      with:
+        name: node-app
+ - имя: Загрузить артефакт сборки
+ использует: действия/upload-artifact@v4.4.3
+  с: 
+ # Имя артефакта
+ имя: # необязательно, по умолчанию используется имя артефакта
+  # Файл, каталог или шаблон подстановочных знаков, описывающий, что нужно загрузить
+ путь: 
+ # Желаемое поведение, если при использовании указанного пути не будет найдено ни одного файла.
+ Доступные параметры:
+ предупреждение: выведите предупреждение, но не завершайте действие с ошибкой
+ ошибка: завершите действие с ошибкой и выведите сообщение об ошибке
+ игнорировать: не выводите никаких предупреждений или ошибок, действие не завершается с ошибкой
+
+ if-no-files-found: # необязательно, по умолчанию — предупреждение
+ # Продолжительность, по истечении которой срок действия артефакта истекает, в днях. 0 означает использование срока хранения по умолчанию.
+ Минимум 1 день. Максимум 90 дней, если не изменено на странице настроек репозитория.
+
+ days-of-retention: # необязательно
+ # Уровень сжатия для Zlib, который будет применен к архиву артефактов. Значение может варьироваться от 0 до 9: - 0: Без сжатия - 1: Наилучшая скорость - 6: сжатие по умолчанию (такое же, как в GNU Gzip) - 9: Наилучшее сжатие Более высокие уровни приведут к лучшему сжатию, но на его выполнение потребуется больше времени. Для больших файлов, которые нелегко сжать, рекомендуется использовать значение 0 для значительно более быстрой загрузки.
+
+ уровень сжатия: # необязательно, по умолчанию 6
+ # Если верно, то артефакт с совпадающим именем будет удалён до загрузки нового. Если неверно, то действие завершится ошибкой, если артефакт с указанным именем уже существует. Не завершится ошибкой, если артефакт не существует.
+
+ перезапись: # необязательно, по умолчанию неверно
+ # Если верно, то скрытые файлы будут включены в артефакт. Если неверно, то скрытые файлы будут исключены из артефакта.
+
+ включить скрытые файлы: # необязательно, по умолчанию равно false
+ 
+    - name: 'Deploy to Azure WebApp'
+      id: deploy-to-webapp
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
